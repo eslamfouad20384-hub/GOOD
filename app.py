@@ -29,9 +29,14 @@ def send_telegram(msg):
         pass
 
 # ==============================
-# 💾 JSON Memory File (UPDATED)
+# 💾 JSON Memory File
 # ==============================
 SIGNALS_FILE = st.secrets["JSON_FILE"]
+
+# 🔥 إنشاء الملف لو مش موجود
+if not os.path.exists(SIGNALS_FILE):
+    with open(SIGNALS_FILE, "w") as f:
+        json.dump([], f)
 
 def load_signals():
     if not os.path.exists(SIGNALS_FILE):
