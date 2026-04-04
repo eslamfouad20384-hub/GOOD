@@ -27,6 +27,12 @@ def send_telegram(msg):
         pass
 
 # ==============================
+# 🧠 ذاكرة الإشارات (حل التكرار)
+# ==============================
+if "sent_signals" not in st.session_state:
+    st.session_state.sent_signals = set()
+
+# ==============================
 # إعدادات
 # ==============================
 MIN_VOLUME = 10_000_000
@@ -183,24 +189,44 @@ def run_scan():
     strong = signals[signals["Score"] >= 10]
     buy = signals[(signals["Score"] >= 8) & (signals["Score"] < 10)]
 
+    new_strong = []
+    new_buy = []
+
     # ==============================
-    # 📩 رسالة Telegram
+    # 🧠 منع التكرار
     # ==============================
-    message = "🚀 Crypto Signals:\n\n"
+    for _, row in strong.iterrows():
+        sid = row["Coin"] + "_STRONG"
 
-    if not strong.empty:
-        message += "🚀 STRONG BUY:\n"
-        for _, row in strong.iterrows():
-            message += f"- {row['Coin']} | {row['Price']}$ | Score {row['Score']}\n"
+        if sid not in st.session_state.sent_signals:
+            new_strong.append(row)
+            st.session_state.sent_signals.add(sid)
 
-    if not buy.empty:
-        message += "\n🔥 BUY:\n"
-        for _, row in buy.iterrows():
-            message += f"- {row['Coin']} | {row['Price']}$ | Score {row['Score']}\n"
+    for _, row in buy.iterrows():
+        sid = row["Coin"] + "_BUY"
 
-    if not strong.empty or not buy.empty:
+        if sid not in st.session_state.sent_signals:
+            new_buy.append(row)
+            st.session_state.sent_signals.add(sid)
+
+    # ==============================
+    # 📩 Telegram Message
+    # ==============================
+    if new_strong or new_buy:
+        message = "🚀 Crypto Signals:\n\n"
+
+        if new_strong:
+            message += "🚀 STRONG BUY:\n"
+            for r in new_strong:
+                message += f"- {r['Coin']} | {r['Price']}$ | Score {r['Score']}\n"
+
+        if new_buy:
+            message += "\n🔥 BUY:\n"
+            for r in new_buy:
+                message += f"- {r['Coin']} | {r['Price']}$ | Score {r['Score']}\n"
+
         send_telegram(message)
-        st.success("📩 تم إرسال إشارات على Telegram")
+        st.success("📩 تم إرسال إشارات جديدة على Telegram")
 
 # ==============================
 # زرار يدوي
