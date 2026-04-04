@@ -29,9 +29,9 @@ def send_telegram(msg):
         pass
 
 # ==============================
-# 💾 JSON Memory File
+# 💾 JSON Memory File (UPDATED)
 # ==============================
-SIGNALS_FILE = "signals.json"
+SIGNALS_FILE = st.secrets["JSON_FILE"]
 
 def load_signals():
     if not os.path.exists(SIGNALS_FILE):
@@ -193,44 +193,29 @@ def run_scan():
         return
 
     df = df.sort_values(by="Score", ascending=False)
-
     st.dataframe(df, use_container_width=True)
 
-    # ==============================
-    # 🔥 فلترة الإشارات
-    # ==============================
     signals = df[df["Score"] >= 8]
     strong = signals[signals["Score"] >= 10]
     buy = signals[(signals["Score"] >= 8) & (signals["Score"] < 10)]
 
-    # ==============================
-    # 💾 تحميل الإشارات القديمة
-    # ==============================
     sent_signals = load_signals()
 
     new_strong = []
     new_buy = []
 
-    # ==============================
-    # 🚫 منع التكرار
-    # ==============================
     for _, row in strong.iterrows():
         sid = row["Coin"] + "_STRONG"
-
         if sid not in sent_signals:
             new_strong.append(row)
             sent_signals.add(sid)
 
     for _, row in buy.iterrows():
         sid = row["Coin"] + "_BUY"
-
         if sid not in sent_signals:
             new_buy.append(row)
             sent_signals.add(sid)
 
-    # ==============================
-    # 📩 Telegram Message
-    # ==============================
     if new_strong or new_buy:
         message = "🚀 Crypto Signals:\n\n"
 
@@ -255,6 +240,6 @@ if st.button("🔍 Scan السوق بالكامل"):
     run_scan()
 
 # ==============================
-# تشغيل تلقائي مع refresh
+# تشغيل تلقائي
 # ==============================
 run_scan()
