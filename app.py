@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import requests
 import numpy as np
+import json
+import os
 from concurrent.futures import ThreadPoolExecutor
 from streamlit_autorefresh import st_autorefresh
 
@@ -27,10 +29,22 @@ def send_telegram(msg):
         pass
 
 # ==============================
-# 🧠 ذاكرة الإشارات (حل التكرار)
+# 💾 JSON Memory File
 # ==============================
-if "sent_signals" not in st.session_state:
-    st.session_state.sent_signals = set()
+SIGNALS_FILE = "signals.json"
+
+def load_signals():
+    if not os.path.exists(SIGNALS_FILE):
+        return set()
+    try:
+        with open(SIGNALS_FILE, "r") as f:
+            return set(json.load(f))
+    except:
+        return set()
+
+def save_signals(signals):
+    with open(SIGNALS_FILE, "w") as f:
+        json.dump(list(signals), f)
 
 # ==============================
 # إعدادات
@@ -189,25 +203,30 @@ def run_scan():
     strong = signals[signals["Score"] >= 10]
     buy = signals[(signals["Score"] >= 8) & (signals["Score"] < 10)]
 
+    # ==============================
+    # 💾 تحميل الإشارات القديمة
+    # ==============================
+    sent_signals = load_signals()
+
     new_strong = []
     new_buy = []
 
     # ==============================
-    # 🧠 منع التكرار
+    # 🚫 منع التكرار
     # ==============================
     for _, row in strong.iterrows():
         sid = row["Coin"] + "_STRONG"
 
-        if sid not in st.session_state.sent_signals:
+        if sid not in sent_signals:
             new_strong.append(row)
-            st.session_state.sent_signals.add(sid)
+            sent_signals.add(sid)
 
     for _, row in buy.iterrows():
         sid = row["Coin"] + "_BUY"
 
-        if sid not in st.session_state.sent_signals:
+        if sid not in sent_signals:
             new_buy.append(row)
-            st.session_state.sent_signals.add(sid)
+            sent_signals.add(sid)
 
     # ==============================
     # 📩 Telegram Message
@@ -226,6 +245,7 @@ def run_scan():
                 message += f"- {r['Coin']} | {r['Price']}$ | Score {r['Score']}\n"
 
         send_telegram(message)
+        save_signals(sent_signals)
         st.success("📩 تم إرسال إشارات جديدة على Telegram")
 
 # ==============================
